@@ -4,7 +4,7 @@ url = "http://testphp.vulnweb.com/listproducts.php?cat="
 
 sql_payloads = []
 
-with open('sql-attack-vector.txt', 'r') as filehandle:
+with open('sqlattack.txt', 'r') as filehandle:
     for line in filehandle:
         sql_payload = line[:-1]
         sql_payloads.append(sql_payload)
