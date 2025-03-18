@@ -1,40 +1,69 @@
 import requests
+import random
+import time
 
-# Input URL yang akan diuji
-url = input("Masukkan URL yang akan diuji (contoh: http://testphp.vulnweb.com/listproducts.php?cat=): ")
+# Daftar user-agent acak
+user_agents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/100.0",
+    "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:50.0) Gecko/20100101 Firefox/50.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0.4472.124 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko",
+    "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 Safari/537.36"
+]
 
-# Baca payload SQL dari file
-sql_payloads = []
-with open('sqlattack.txt', 'r') as filehandle:
-    for line in filehandle:
-        sql_payload = line.strip()
-        sql_payloads.append(sql_payload)
+# Error MySQL yang umum
+mysql_errors = [
+    "You have an error in your SQL syntax;",
+    "Warning: mysql_",
+    "Warning: mysqli_",
+    "MySQL server version for the right syntax to use",
+    "supplied argument is not a valid MySQL"
+]
 
-# Fungsi untuk mencetak hasil dengan tampilan kotak dan berwarna
-def print_result(status, payload, message, color_code):
-    print("\033[{}m".format(color_code) + f"\n{'='*40}")
-    print(f"  {status} : {payload}")
-    print(f"  Pesan : {message}")
-    print(f"{'='*40}\033[0m")
-
-# Cek setiap payload
-for payload in sql_payloads:
-    full_url = url + payload
-    print("\033[1;34mTesting: {}\033[0m".format(full_url))
-    
+# Fungsi untuk cek apakah URL rentan
+def check_url(url):
     try:
-        response = requests.post(full_url)
-        
-        if "mysql" in response.text.lower():
-            print_result("Injectable MySQL detected", payload, "Possible SQL Injection", "1;32")
-        elif "native client" in response.text.lower():
-            print_result("Injectable MSSQL detected", payload, "Possible SQL Injection", "1;33")
-        elif "syntax error" in response.text.lower():
-            print_result("Injectable PostGRES detected", payload, "Possible SQL Injection", "1;36")
-        elif "ORA" in response.text.lower():
-            print_result("Injectable Oracle database detected", payload, "Possible SQL Injection", "1;35")
-        else:
-            print_result("Not Injectable", payload, "No SQL Injection Detected", "1;31")
+        test_url = url + "'"
+        headers = {
+            "User-Agent": random.choice(user_agents),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Connection": "close"
+        }
+        response = requests.get(test_url, headers=headers, timeout=5)
 
+        for err in mysql_errors:
+            if err.lower() in response.text.lower():
+                return True, err
+        return False, ""
     except requests.exceptions.RequestException as e:
-        print("\033[1;31mError saat mengakses URL:\033[0m", e)
+        return False, f"[ERROR] {e}"
+
+# Fungsi utama
+def main():
+    print("==== MySQL Dork Vulnerability Scanner ====")
+    print("Contoh input: http://site.com/page.php?id=1,http://test.com/view.php?id=3")
+    input_urls = input("\nMasukkan URL target (pisahkan dengan koma):\n> ")
+
+    urls = [u.strip() for u in input_urls.split(",") if u.strip()]
+    if not urls:
+        print("[!] Tidak ada URL yang dimasukkan!")
+        return
+
+    print(f"\n[*] Memulai scan pada {len(urls)} URL...\n")
+
+    for i, url in enumerate(urls, 1):
+        print(f"[{i}] Menguji: {url}")
+        vulnerable, message = check_url(url)
+        if vulnerable:
+            print(f"    [VULNERABLE] Terindikasi error: {message}\n")
+        elif message.startswith("[ERROR]"):
+            print(f"    [GAGAL] {message}\n")
+        else:
+            print("    [AMAN] Tidak ditemukan error MySQL\n")
+        time.sleep(1)
+
+    print("[✓] Scan selesai.")
+
+# Jalankan program
+if __name__ == "__main__":
+    main()
