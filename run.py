@@ -1,6 +1,9 @@
 import requests
 import random
 import time
+from colorama import Fore, Style, init
+
+init(autoreset=True)
 
 # Daftar user-agent acak
 user_agents = [
@@ -11,7 +14,7 @@ user_agents = [
     "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 Safari/537.36"
 ]
 
-# Error MySQL yang umum
+# Error MySQL klasik
 mysql_errors = [
     "You have an error in your SQL syntax;",
     "Warning: mysql_",
@@ -20,7 +23,6 @@ mysql_errors = [
     "supplied argument is not a valid MySQL"
 ]
 
-# Fungsi untuk cek apakah URL rentan
 def check_url(url):
     try:
         test_url = url + "'"
@@ -38,32 +40,30 @@ def check_url(url):
     except requests.exceptions.RequestException as e:
         return False, f"[ERROR] {e}"
 
-# Fungsi utama
 def main():
-    print("==== MySQL Dork Vulnerability Scanner ====")
+    print(Fore.CYAN + "==== MySQL Dork Vulnerability Scanner ====")
     print("Contoh input: http://site.com/page.php?id=1,http://test.com/view.php?id=3")
-    input_urls = input("\nMasukkan URL target (pisahkan dengan koma):\n> ")
+    input_urls = input(Fore.CYAN + "\nMasukkan URL target (pisahkan dengan koma):\n> ")
 
     urls = [u.strip() for u in input_urls.split(",") if u.strip()]
     if not urls:
-        print("[!] Tidak ada URL yang dimasukkan!")
+        print(Fore.RED + "[!] Tidak ada URL yang dimasukkan!")
         return
 
     print(f"\n[*] Memulai scan pada {len(urls)} URL...\n")
 
     for i, url in enumerate(urls, 1):
-        print(f"[{i}] Menguji: {url}")
+        print(f"[{i}] Menguji: {Fore.WHITE + url}")
         vulnerable, message = check_url(url)
         if vulnerable:
-            print(f"    [VULNERABLE] Terindikasi error: {message}\n")
+            print(Fore.RED + f"    [VULNERABLE] Terindikasi error: {message}\n")
         elif message.startswith("[ERROR]"):
-            print(f"    [GAGAL] {message}\n")
+            print(Fore.YELLOW + f"    [GAGAL] {message}\n")
         else:
-            print("    [AMAN] Tidak ditemukan error MySQL\n")
+            print(Fore.GREEN + "    [AMAN] Tidak ditemukan error MySQL\n")
         time.sleep(1)
 
-    print("[✓] Scan selesai.")
+    print(Fore.CYAN + "[✓] Scan selesai.")
 
-# Jalankan program
 if __name__ == "__main__":
     main()
